@@ -4,7 +4,22 @@ Central application settings loaded from environment / .env file.
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+
+
+def resolve_torch_device(device: str) -> str:
+    """Resolve 'auto' to CUDA when available, otherwise CPU."""
+    requested = (device or "auto").strip().lower()
+    if requested != "auto":
+        return device
+
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return "0"
+    except Exception:
+        pass
+    return "cpu"
 
 
 class Settings(BaseSettings):
@@ -43,8 +58,23 @@ class Settings(BaseSettings):
 
     # ── YOLO ──────────────────────────────────────────────────────────────────
     yolo_model: str = "yolov8n.pt"
+    yolo_pretrained_model: str = "yolov8n.pt"
     yolo_confidence: float = 0.40
-    yolo_device: str = "cpu"
+    yolo_device: str = "auto"
+    yolo_person_class_id: int = 0
+
+    @property
+    def resolved_yolo_device(self) -> str:
+        return resolve_torch_device(self.yolo_device)
+
+    # Training / fine-tuning
+    dataset_yaml: str = "dataset/dataset.yaml"
+    training_project: str = "experiments"
+    training_name: str = "surveillance-yolov8"
+    trained_models_dir: str = "models"
+    train_epochs: int = 50
+    train_batch: int = 16
+    train_imgsz: int = 640
 
     # ── Virtual counting line (normalised 0–1) ────────────────────────────────
     line_start_x: float = 0.0

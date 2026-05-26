@@ -111,6 +111,16 @@ docker compose up --build
 
 ```
 surveillance_system/
+├── dataset/
+│   ├── dataset.yaml          # YOLOv8 training config
+│   ├── images/train|val      # training and validation images
+│   └── labels/train|val      # YOLO labels
+├── training/
+│   └── train.py              # YOLOv8 fine-tuning pipeline
+├── inference/
+│   └── model_loader.py       # pretrained/custom model loading
+├── models/                   # versioned best.pt / last.pt outputs
+├── experiments/              # Ultralytics runs, metrics, plots
 ├── config/
 │   └── settings.py          # Pydantic-settings config (reads .env)
 ├── core/
@@ -138,6 +148,129 @@ surveillance_system/
 ├── requirements.txt
 └── .env.example
 ```
+
+---
+
+## Fine-Tuning YOLOv8
+
+This project can run with generic pretrained YOLO weights or a custom fine-tuned model. Fine-tuning starts from `yolov8n.pt` or `yolov8s.pt`, learns your camera/domain data, and exports versioned `best.pt` and `last.pt` weights.
+
+### Dataset Format
+
+Use standard YOLO format:
+
+```text
+dataset/
+├── images/
+│   ├── train/
+│   └── val/
+└── labels/
+    ├── train/
+    └── val/
+```
+
+Each image needs a matching `.txt` label file with the same relative name. A label row is:
+
+```text
+class_id x_center y_center width height
+```
+
+Coordinates must be normalized from `0` to `1`. For person-only training, use class `0`.
+
+### Collect And Label Data
+
+Collect frames from the same camera angles, lighting, distance, crowd density, and weather conditions where the system will run. Include hard examples: partial people, motion blur, night scenes, shadows, occlusion, reflections, and empty frames.
+
+Label images with CVAT, Label Studio, Roboflow, or makesense.ai, then export in YOLOv8/YOLO format. Keep labels consistent: one box around each visible person.
+
+### Prepare Dataset
+
+Split raw images and labels:
+
+```bash
+python scripts/prepare_dataset.py --images raw/images --labels raw/labels --target dataset --val-ratio 0.2
+```
+
+Validate an existing dataset:
+
+```bash
+python scripts/prepare_dataset.py --target dataset --validate-only
+```
+
+Import a Roboflow YOLOv8 export:
+
+```bash
+python scripts/prepare_dataset.py --roboflow-dir path/to/roboflow-export --target dataset
+```
+
+The utility checks missing labels, empty labels, train/val counts, and class statistics. It also writes `dataset/dataset.yaml`.
+
+### Train
+
+Run transfer learning from pretrained YOLOv8:
+
+```bash
+python train.py --weights yolov8n.pt --data dataset/dataset.yaml --epochs 50 --batch 16 --imgsz 640
+```
+
+GPU is selected automatically when CUDA is available. You can force it:
+
+```bash
+python train.py --device 0
+```
+
+Outputs:
+
+```text
+experiments/<version>/weights/best.pt
+experiments/<version>/weights/last.pt
+models/<version>/best.pt
+models/<version>/last.pt
+models/latest/best.pt
+models/registry.json
+```
+
+Ultralytics also saves `results.csv`, loss curves, precision/recall curves, PR curves, confusion matrix, and validation metrics. Important plots are copied to `models/<version>/visualizations/`.
+
+### Validate Metrics
+
+After training, validation runs automatically and writes `training_summary.json` with:
+
+- precision
+- recall
+- mAP50
+- mAP50-95
+- loss-related Ultralytics metrics when available
+
+### Use Custom Model For Inference
+
+Set `.env`:
+
+```env
+YOLO_MODEL=models/latest/best.pt
+YOLO_CONFIDENCE=0.40
+YOLO_DEVICE=auto
+```
+
+Then run the normal realtime pipeline:
+
+```bash
+python scripts/run_pipeline.py
+```
+
+To switch back to pretrained inference:
+
+```env
+YOLO_MODEL=yolov8n.pt
+```
+
+The detector loads models with:
+
+```python
+model = YOLO("models/best.pt")
+```
+
+through the project loader, so both pretrained weights and custom `best.pt` files are supported without changing the realtime flow.
 
 ---
 
@@ -177,8 +310,15 @@ Example questions:
 | `YOUTUBE_STREAM_URL`  | (lofi live stream)          | Any YouTube live URL or RTSP/HLS    |
 | `TARGET_FPS`          | 10                          | Frames sent to detector per second  |
 | `YOLO_MODEL`          | `yolov8n.pt`                | nano/small/medium/large/extra       |
+| `YOLO_PRETRAINED_MODEL` | `yolov8n.pt`              | fallback and fine-tuning start point |
 | `YOLO_CONFIDENCE`     | 0.40                        | Detection threshold 0–1             |
-| `YOLO_DEVICE`         | `cpu`                       | `cpu` / `0` (GPU) / `mps`          |
+| `YOLO_DEVICE`         | `auto`                      | `auto` / `cpu` / `0` (GPU) / `mps` |
+| `DATASET_YAML`        | `dataset/dataset.yaml`      | YOLOv8 dataset config              |
+| `TRAINING_PROJECT`    | `experiments`               | Ultralytics run output root         |
+| `TRAINED_MODELS_DIR`  | `models`                    | versioned production weights root   |
+| `TRAIN_EPOCHS`        | 50                          | default fine-tuning epochs          |
+| `TRAIN_BATCH`         | 16                          | default training batch size         |
+| `TRAIN_IMGSZ`         | 640                         | default training image size         |
 | `LINE_START_X/Y`      | 0.0 / 0.5                   | Normalised line start (0–1)         |
 | `LINE_END_X/Y`        | 1.0 / 0.5                   | Normalised line end (0–1)           |
 | `OPENAI_API_KEY`      | —                           | Required for chatbot                |

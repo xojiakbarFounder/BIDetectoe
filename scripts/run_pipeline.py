@@ -49,7 +49,7 @@ from core.detector import PersonDetector
 from core.line_counter import CrossingEvent, LineCounter
 from core.stream_handler import StreamHandler
 from core.tracker import PersonTracker
-
+from api.state import live_state
 # ── FPS estimator ─────────────────────────────────────────────────────────────
 
 class FPSCounter:

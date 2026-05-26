@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import numpy as np
 import supervision as sv
-from ultralytics import YOLO
 from loguru import logger
 
 from config import settings
+from inference.model_loader import load_yolo_model
 
 # COCO class index for "person"
-_PERSON_CLASS_ID = 0
+_PERSON_CLASS_ID = settings.yolo_person_class_id
 
 
 class PersonDetector:
@@ -31,10 +31,13 @@ class PersonDetector:
     ) -> None:
         model_path = model_path or settings.yolo_model
         self.confidence = confidence if confidence is not None else settings.yolo_confidence
-        self.device = device or settings.yolo_device
+        self.device = device or settings.resolved_yolo_device
 
-        logger.info(f"Loading YOLO model '{model_path}' on device='{self.device}' …")
-        self._model = YOLO(model_path)
+        logger.info(f"Loading YOLO model '{model_path}' on device='{self.device}' ...")
+        self._model = load_yolo_model(
+            model_path,
+            fallback_model=settings.yolo_pretrained_model,
+        )
         logger.info("YOLO model loaded.")
 
     # ── public API ────────────────────────────────────────────────────────────

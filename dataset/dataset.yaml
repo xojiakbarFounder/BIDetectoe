@@ -1,0 +1,11 @@
+# YOLOv8 dataset config for the surveillance fine-tuning pipeline.
+# Put images and YOLO .txt labels under:
+#   dataset/images/train, dataset/labels/train
+#   dataset/images/val,   dataset/labels/val
+path: dataset
+train: images/train
+val: images/val
+
+names:
+  0: person
+
