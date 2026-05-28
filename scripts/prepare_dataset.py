@@ -54,7 +54,8 @@ def write_dataset_yaml(target: Path, class_names: list[str]) -> None:
         "# YOLOv8 dataset config\n"
         f"path: {target.as_posix()}\n"
         "train: images/train\n"
-        "val: images/val\n\n"
+        "val: images/val\n"
+        "test: images/test\n\n"
         "names:\n"
         f"{names}\n"
     )
