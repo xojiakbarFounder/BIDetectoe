@@ -33,7 +33,7 @@ app = FastAPI(
         "Endpoints:\n"
         "- `/analytics/*`  – pre-aggregated stats & live counters\n"
         "- `/events/*`     – crossing events + WebSocket live feed\n"
-        "- `/chat`         – AI chatbot analytics (OpenAI)\n"
+        "- `/chat`         - AI chatbot analytics (Gemini)\n"
     ),
     version="1.0.0",
     lifespan=lifespan,

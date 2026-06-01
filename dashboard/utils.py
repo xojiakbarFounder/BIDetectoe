@@ -25,7 +25,7 @@ def _get(path: str, **params) -> dict | list | None:
 
 def _post(path: str, payload: dict) -> dict | None:
     try:
-        r = requests.post(f"{_API_BASE}{path}", json=payload, timeout=10)
+        r = requests.post(f"{_API_BASE}{path}", json=payload, timeout=95)
         r.raise_for_status()
         return r.json()
     except Exception as exc:

@@ -15,7 +15,7 @@ from core.database import get_day_counts, get_hourly_stats, get_peak_hour, get_l
 
 st.set_page_config(
     page_title="Kuzatuv Tizimi",
-    page_icon="📹",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -36,11 +36,11 @@ if "chat_history" not in st.session_state:
 
 col_title, col_btn = st.columns([6, 1])
 with col_title:
-    st.title("📹 Kuzatuv Analitika Tizimi")
+    st.title("Kuzatuv Analitika Tizimi")
     st.caption("YOLOv8 + ByteTrack · Walworth Road London")
 with col_btn:
     st.write("")
-    if st.button("🔄 Yangilash"):
+    if st.button("Yangilash"):
         st.rerun()
 
 st.divider()
@@ -48,7 +48,7 @@ st.divider()
 # ── Kun filtri ────────────────────────────────────────────────────────────────
 
 tanlangan_kun = st.date_input(
-    "📅 Kun tanlang",
+    "Kun tanlang",
     value=dt.date.today(),
     max_value=dt.date.today(),
 )
@@ -59,7 +59,7 @@ kun_nomi = "Bugun" if bugun else tanlangan_kun.strftime("%d-%b-%Y")
 # 1-QISM — Statistika
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.subheader(f"📊 {kun_nomi} Statistikasi")
+st.subheader(f"{kun_nomi} Statistikasi")
 
 counts = get_day_counts(tanlangan_kun)
 
@@ -78,7 +78,7 @@ st.divider()
 # 2-QISM — Soatlik grafik
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.subheader(f"📈 {kun_nomi} — Soatlik Ko'rsatkich")
+st.subheader(f" {kun_nomi} — Soatlik Ko'rsatkich")
 
 hourly = get_hourly_stats(tanlangan_kun)
 
@@ -91,7 +91,7 @@ if hourly:
     has_in  = df["in_count"].sum() > 0
     has_out = df["out_count"].sum() > 0
 
-    tab1, tab2, tab3 = st.tabs(["📊 Ustunli", "📉 Chiziqli", "🗃 Jadval"])
+    tab1, tab2, tab3 = st.tabs([" Ustunli", " Chiziqli", " Jadval"])
 
     with tab1:
         fig = px.bar(
@@ -138,7 +138,7 @@ if hourly:
     if peak:
         ph = dt.datetime.strptime(peak["hour"], "%Y-%m-%d %H:%M:%S")
         st.info(
-            f"🏆 **7 kunlik eng gavjum soat:** {ph.strftime('%d-%b %H:00')} — "
+            f"**7 kunlik eng gavjum soat:** {ph.strftime('%d-%b %H:00')} — "
             f"{peak['total_count']} ta odam"
         )
 else:
@@ -150,7 +150,7 @@ st.divider()
 # 3-QISM — So'nggi o'tishlar
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.subheader("🚶 So'nggi O'tishlar")
+st.subheader("So'nggi O'tishlar")
 
 events = get_latest_events(limit=20)
 if events:
@@ -175,7 +175,7 @@ st.divider()
 
 from utils import send_chat
 
-st.subheader("🤖 AI Yordamchisi")
+st.subheader("AI Yordamchisi")
 st.caption("Kuzatuv ma'lumotlari haqida so'rang.")
 
 s_cols = st.columns(3)
@@ -210,7 +210,7 @@ if send and msg.strip():
     st.session_state.chat_history.append({"role": "assistant", "content": reply})
     st.rerun()
 
-if st.button("🗑 Suhbatni tozalash"):
+if st.button(" Suhbatni tozalash"):
     st.session_state.chat_history = []
     st.rerun()
 

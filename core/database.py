@@ -303,3 +303,79 @@ def get_latest_events(limit: int = 20) -> list[dict]:
             }
             for r in rows
         ]
+
+
+def get_events_around_timestamp(
+    timestamp: dt.datetime,
+    window_seconds: int = 120,
+    limit: int = 20,
+) -> list[dict]:
+    """Return crossing events around a local timestamp."""
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=_local_tz())
+
+    start = timestamp - dt.timedelta(seconds=window_seconds)
+    end = timestamp + dt.timedelta(seconds=window_seconds)
+
+    with get_db() as db:
+        rows = (
+            db.query(CrossingEvent)
+            .filter(CrossingEvent.timestamp >= start, CrossingEvent.timestamp <= end)
+            .order_by(
+                func.abs(
+                    func.extract("epoch", CrossingEvent.timestamp)
+                    - func.extract("epoch", timestamp)
+                )
+            )
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "tracker_id": r.tracker_id,
+                "direction": r.direction,
+                "timestamp": _to_local(r.timestamp).isoformat(),
+                "seconds_from_requested_time": round(
+                    (_to_local(r.timestamp) - timestamp).total_seconds(), 3
+                ),
+            }
+            for r in rows
+        ]
+
+
+def get_events_for_day(date: dt.date, limit: int = 50) -> list[dict]:
+    """Return crossing events for a specific local date."""
+    tz = _local_tz()
+    day_start = dt.datetime(date.year, date.month, date.day, tzinfo=tz)
+    day_end = day_start + dt.timedelta(days=1)
+
+    with get_db() as db:
+        rows = (
+            db.query(CrossingEvent)
+            .filter(CrossingEvent.timestamp >= day_start, CrossingEvent.timestamp < day_end)
+            .order_by(CrossingEvent.timestamp)
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "tracker_id": r.tracker_id,
+                "direction": r.direction,
+                "timestamp": _to_local(r.timestamp).isoformat(),
+            }
+            for r in rows
+        ]
+
+
+def get_latest_event_date_by_day(day: int) -> dt.date | None:
+    """Return the newest local date in the DB whose day-of-month matches."""
+    with get_db() as db:
+        row = (
+            db.query(CrossingEvent)
+            .filter(func.extract("day", CrossingEvent.timestamp) == day)
+            .order_by(CrossingEvent.timestamp.desc())
+            .first()
+        )
+        return _to_local(row.timestamp).date() if row else None

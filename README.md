@@ -31,7 +31,7 @@
     /events/latest                       + Plotly
     /chat                                + AI Chatbot
          │                                    │
-         └──────────── OpenAI API ────────────┘
+         └──────────── Gemini API ────────────┘
 ```
 
 ---
@@ -59,7 +59,7 @@ cp .env.example .env
 # Edit .env:
 #   YOUTUBE_STREAM_URL=https://www.youtube.com/watch?v=<live_id>
 #   POSTGRES_PASSWORD=your_password
-#   OPENAI_API_KEY=sk-...
+#   GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### 3 — Start PostgreSQL & create tables
@@ -136,7 +136,7 @@ surveillance_system/
 │   └── routes/
 │       ├── analytics.py     # GET /analytics/*
 │       ├── events.py        # GET /events/latest + WS /events/ws
-│       └── chatbot.py       # POST /chat  (OpenAI)
+│       └── chatbot.py       # POST /chat  (Gemini)
 ├── dashboard/
 │   ├── app.py               # Streamlit multi-section dashboard
 │   └── utils.py             # API client helpers
@@ -284,7 +284,7 @@ through the project loader, so both pretrained weights and custom `best.pt` file
 | GET    | `/analytics/live`         | Real-time counters (poll every 3 s)    |
 | GET    | `/events/latest?limit=`   | Most recent crossing events            |
 | WS     | `/events/ws`              | WebSocket stream of live events        |
-| POST   | `/chat`                   | AI chatbot (OpenAI)                    |
+| POST   | `/chat`                   | AI chatbot (Gemini)                    |
 | GET    | `/docs`                   | Swagger UI                             |
 
 ---
@@ -321,8 +321,8 @@ Example questions:
 | `TRAIN_IMGSZ`         | 640                         | default training image size         |
 | `LINE_START_X/Y`      | 0.0 / 0.5                   | Normalised line start (0–1)         |
 | `LINE_END_X/Y`        | 1.0 / 0.5                   | Normalised line end (0–1)           |
-| `OPENAI_API_KEY`      | —                           | Required for chatbot                |
-| `OPENAI_MODEL`        | `gpt-4o-mini`               | Any OpenAI chat model               |
+| `GEMINI_API_KEY`      | -                           | Required for chatbot                |
+| `GEMINI_MODEL`        | `gemini-2.0-flash`          | Any Gemini text model               |
 
 ---
 

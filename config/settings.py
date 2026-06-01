@@ -90,9 +90,9 @@ class Settings(BaseSettings):
     # ── Timezone ──────────────────────────────────────────────────────────────
     utc_offset_hours: int = 5          # UTC+5 = Toshkent
 
-    # ── OpenAI ────────────────────────────────────────────────────────────────
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
+    # ── Gemini ────────────────────────────────────────────────────────────────
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
 
 
 # Singleton used throughout the application
