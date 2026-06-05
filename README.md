@@ -1,2 +1,2 @@
-# BIDetectoe
+# BIDetector
 My Assignment project
