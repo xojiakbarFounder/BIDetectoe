@@ -22,6 +22,9 @@ class LiveState:
     in_count: int = 0
     out_count: int = 0
     total_count: int = 0
+    category_counts: dict[str, int] = field(
+        default_factory=lambda: {"person": 0, "car": 0, "motorcycle": 0}
+    )
     active_tracks: int = 0
     fps: float = 0.0
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
@@ -42,11 +45,14 @@ class LiveState:
         out_count: int,
         active_tracks: int,
         fps: float,
+        category_counts: dict[str, int] | None = None,
     ) -> None:
         with self._lock:
             self.in_count = in_count
             self.out_count = out_count
             self.total_count = in_count + out_count
+            if category_counts is not None:
+                self.category_counts = category_counts
             self.active_tracks = active_tracks
             self.fps = fps
 
@@ -56,6 +62,7 @@ class LiveState:
                 "in_count": self.in_count,
                 "out_count": self.out_count,
                 "total_count": self.total_count,
+                "category_counts": dict(self.category_counts),
                 "active_tracks": self.active_tracks,
                 "fps": round(self.fps, 1),
                 "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),

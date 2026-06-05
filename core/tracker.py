@@ -14,6 +14,12 @@ import numpy as np
 import supervision as sv
 from loguru import logger
 
+_CLASS_NAMES = {
+    0: "person",
+    2: "car",
+    3: "motorcycle",
+}
+
 
 class PersonTracker:
     """
@@ -71,7 +77,7 @@ class PersonTracker:
 
     @staticmethod
     def build_labels(detections: sv.Detections) -> list[str]:
-        """Return display labels like '#42 (0.87)' for each detection."""
+        """Return display labels like 'person #42 (0.87)' for each detection."""
         labels = []
         for i in range(len(detections)):
             tid = (
@@ -79,10 +85,13 @@ class PersonTracker:
                 if detections.tracker_id is not None
                 else "?"
             )
+            class_name = "object"
+            if detections.class_id is not None:
+                class_name = _CLASS_NAMES.get(int(detections.class_id[i]), "object")
             conf = (
                 f"{detections.confidence[i]:.2f}"
                 if detections.confidence is not None
                 else ""
             )
-            labels.append(f"#{tid} ({conf})")
+            labels.append(f"{class_name} #{tid} ({conf})")
         return labels

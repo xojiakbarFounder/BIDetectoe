@@ -67,3 +67,5 @@ htmlcov/
 # Bytecode
 *.pyo
 *.pyd
+
+exports/

@@ -1,7 +1,7 @@
 """
 detector.py
 -----------
-Wraps YOLOv8 (ultralytics) for person-only detection.
+Wraps YOLOv8 (ultralytics) for object detection.
 
 Returns a `supervision.Detections` object so the rest of the pipeline
 (tracker, line-counter) stays library-agnostic.
@@ -16,12 +16,11 @@ from loguru import logger
 from config import settings
 from inference.model_loader import load_yolo_model
 
-# COCO class index for "person"
-_PERSON_CLASS_ID = settings.yolo_person_class_id
+_CLASS_IDS = settings.detection_class_ids
 
 
 class PersonDetector:
-    """YOLOv8-based person detector returning supervision.Detections."""
+    """YOLOv8-based detector returning supervision.Detections."""
 
     def __init__(
         self,
@@ -49,20 +48,20 @@ class PersonDetector:
         Returns
         -------
         sv.Detections
-            Bounding boxes, confidence scores, and class IDs, filtered to
-            persons only.
+            Bounding boxes, confidence scores, and class IDs, filtered to the
+            configured classes.
         """
         results = self._model.predict(
             source=frame,
             conf=self.confidence,
-            classes=[_PERSON_CLASS_ID],
+            classes=_CLASS_IDS,
             device=self.device,
+            imgsz=settings.yolo_imgsz,
             verbose=False,
         )
         detections = sv.Detections.from_ultralytics(results[0])
-        # Filter to person class (redundant but safe)
-        person_mask = detections.class_id == _PERSON_CLASS_ID
-        return detections[person_mask]
+        class_mask = np.isin(detections.class_id, _CLASS_IDS)
+        return detections[class_mask]
 
     # ── convenience annotator ─────────────────────────────────────────────────
 

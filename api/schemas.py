@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 class CrossingEventOut(BaseModel):
     id: int
     tracker_id: int
+    object_class: str = "person"
     direction: str
     timestamp: datetime
 
@@ -29,6 +30,7 @@ class DailyCountsOut(BaseModel):
     in_count: int
     out_count: int
     total: int
+    category_counts: dict[str, int] = Field(default_factory=dict)
 
 
 # ── Hourly stats ──────────────────────────────────────────────────────────────
@@ -55,6 +57,7 @@ class LiveStateOut(BaseModel):
     in_count: int
     out_count: int
     total_count: int
+    category_counts: dict[str, int] = Field(default_factory=dict)
     active_tracks: int
     fps: float
     timestamp: str

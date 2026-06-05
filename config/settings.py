@@ -62,6 +62,19 @@ class Settings(BaseSettings):
     yolo_confidence: float = 0.40
     yolo_device: str = "auto"
     yolo_person_class_id: int = 0
+    yolo_class_ids: str = "0"
+    yolo_imgsz: int = 640
+    excel_export_dir: str = "exports/excel"
+
+    @property
+    def detection_class_ids(self) -> list[int]:
+        ids: list[int] = []
+        for raw in self.yolo_class_ids.split(","):
+            raw = raw.strip()
+            if not raw:
+                continue
+            ids.append(int(raw))
+        return ids or [self.yolo_person_class_id]
 
     @property
     def resolved_yolo_device(self) -> str:

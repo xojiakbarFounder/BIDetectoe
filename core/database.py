@@ -32,6 +32,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from config import settings
+from core.excel_exporter import append_crossing_event
 
 
 # ── Engine / session factory ──────────────────────────────────────────────────
@@ -92,6 +93,7 @@ class CrossingEvent(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     tracker_id = Column(Integer, nullable=False, index=True)
+    object_class = Column(String(32), nullable=False, default="person", index=True)
     direction = Column(String(4), nullable=False)          # "in" | "out"
     timestamp = Column(
         DateTime(timezone=True),
@@ -139,6 +141,11 @@ def init_db() -> None:
     """Create all tables if they don't exist yet."""
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(text(
+            "ALTER TABLE crossing_events "
+            "ADD COLUMN IF NOT EXISTS object_class VARCHAR(32) NOT NULL DEFAULT 'person'"
+        ))
     logger.info("Database tables ensured.")
 
 
@@ -147,6 +154,7 @@ def init_db() -> None:
 def save_crossing_event(
     tracker_id: int,
     direction: str,
+    object_class: str = "person",
     timestamp: dt.datetime | None = None,
     bbox: tuple[float, float, float, float] | None = None,
 ) -> CrossingEvent:
@@ -157,6 +165,7 @@ def save_crossing_event(
     with get_db() as db:
         event = CrossingEvent(
             tracker_id=tracker_id,
+            object_class=object_class,
             direction=direction,
             timestamp=timestamp,
             bbox_x1=bbox[0] if bbox else None,
@@ -168,6 +177,17 @@ def save_crossing_event(
         db.flush()  # get the id before commit
 
         _upsert_hourly_stats(db, timestamp, direction)
+        append_crossing_event({
+            "event_id": event.id,
+            "local_time": _to_local(timestamp),
+            "object_class": object_class,
+            "tracker_id": tracker_id,
+            "direction": direction,
+            "bbox_x1": bbox[0] if bbox else "",
+            "bbox_y1": bbox[1] if bbox else "",
+            "bbox_x2": bbox[2] if bbox else "",
+            "bbox_y2": bbox[3] if bbox else "",
+        })
         logger.debug(f"Saved crossing event id={event.id}")
         return event
 
@@ -231,6 +251,7 @@ def get_day_counts(date: dt.date | None = None) -> dict:
         else:
             counts["out_count"] = cnt
         counts["total"] += cnt
+    counts["category_counts"] = get_category_counts(date)
     return counts
 
 
@@ -285,6 +306,33 @@ def get_peak_hour(days: int = 7) -> dict | None:
         }
 
 
+def get_category_counts(date: dt.date | None = None) -> dict:
+    """Return crossing totals grouped by object_class for a local date."""
+    tz = _local_tz()
+    if date is None:
+        date = _local_now().date()
+    day_start = dt.datetime(date.year, date.month, date.day, tzinfo=tz)
+    day_end = day_start + dt.timedelta(days=1)
+    with get_db() as db:
+        rows = (
+            db.query(
+                CrossingEvent.object_class,
+                func.count(CrossingEvent.id).label("cnt"),
+            )
+            .filter(
+                CrossingEvent.timestamp >= day_start,
+                CrossingEvent.timestamp < day_end,
+            )
+            .group_by(CrossingEvent.object_class)
+            .all()
+        )
+    counts = {"person": 0, "car": 0, "motorcycle": 0}
+    for object_class, cnt in rows:
+        counts[object_class or "person"] = cnt
+    counts["total"] = sum(counts.values())
+    return counts
+
+
 def get_latest_events(limit: int = 20) -> list[dict]:
     """Return the most recent crossing events (local time)."""
     with get_db() as db:
@@ -298,6 +346,7 @@ def get_latest_events(limit: int = 20) -> list[dict]:
             {
                 "id": r.id,
                 "tracker_id": r.tracker_id,
+                "object_class": r.object_class,
                 "direction": r.direction,
                 "timestamp": _to_local(r.timestamp).isoformat(),
             }
@@ -334,6 +383,7 @@ def get_events_around_timestamp(
             {
                 "id": r.id,
                 "tracker_id": r.tracker_id,
+                "object_class": r.object_class,
                 "direction": r.direction,
                 "timestamp": _to_local(r.timestamp).isoformat(),
                 "seconds_from_requested_time": round(
@@ -362,6 +412,7 @@ def get_events_for_day(date: dt.date, limit: int = 50) -> list[dict]:
             {
                 "id": r.id,
                 "tracker_id": r.tracker_id,
+                "object_class": r.object_class,
                 "direction": r.direction,
                 "timestamp": _to_local(r.timestamp).isoformat(),
             }

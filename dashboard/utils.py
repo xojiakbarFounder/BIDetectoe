@@ -13,6 +13,10 @@ from loguru import logger
 _API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 
+def api_base_url() -> str:
+    return _API_BASE
+
+
 def _get(path: str, **params) -> dict | list | None:
     try:
         r = requests.get(f"{_API_BASE}{path}", params=params, timeout=5)
@@ -33,17 +37,42 @@ def _post(path: str, payload: dict) -> dict | None:
         return None
 
 
+def _get_bytes(path: str) -> bytes | None:
+    try:
+        r = requests.get(f"{_API_BASE}{path}", timeout=5)
+        if r.status_code == 204:
+            return None
+        r.raise_for_status()
+        return r.content
+    except Exception as exc:
+        logger.warning(f"API GET {path} failed: {exc}")
+        return None
+
+
 # ── Analytics helpers ─────────────────────────────────────────────────────────
 
 def fetch_live_state() -> dict:
     data = _get("/analytics/live")
-    return data or {"in_count": 0, "out_count": 0, "total_count": 0, "active_tracks": 0, "fps": 0.0, "timestamp": "—"}
+    return data or {
+        "in_count": 0,
+        "out_count": 0,
+        "total_count": 0,
+        "category_counts": {"person": 0, "car": 0, "motorcycle": 0},
+        "active_tracks": 0,
+        "fps": 0.0,
+        "timestamp": "-",
+    }
 
 
 def fetch_today_counts(date: str | None = None) -> dict:
     params = {"date": date} if date else {}
     data = _get("/analytics/today", **params)
-    return data or {"in_count": 0, "out_count": 0, "total": 0}
+    return data or {
+        "in_count": 0,
+        "out_count": 0,
+        "total": 0,
+        "category_counts": {"person": 0, "car": 0, "motorcycle": 0},
+    }
 
 
 def fetch_hourly_stats(date: str | None = None) -> list[dict]:
@@ -59,6 +88,10 @@ def fetch_peak_hour(days: int = 7) -> dict | None:
 def fetch_latest_events(limit: int = 20) -> list[dict]:
     data = _get("/events/latest", limit=limit)
     return data or []
+
+
+def fetch_latest_frame() -> bytes | None:
+    return _get_bytes("/video/frame")
 
 
 # ── Chatbot helper ────────────────────────────────────────────────────────────

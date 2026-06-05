@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import Response, StreamingResponse
 
 from api.state import live_state
@@ -49,3 +49,13 @@ async def latest_frame():
     if frame is None:
         return Response(status_code=204)
     return Response(content=frame, media_type="image/jpeg")
+
+
+@router.post("/internal/frame", include_in_schema=False)
+async def update_frame(request: Request):
+    """Receive the latest annotated JPEG frame from the pipeline process."""
+    frame = await request.body()
+    if not frame:
+        return Response(status_code=204)
+    live_state.set_frame(frame)
+    return {"status": "ok"}

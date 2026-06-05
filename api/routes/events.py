@@ -68,6 +68,7 @@ async def push_event(payload: dict):
     event = save_crossing_event(
         tracker_id=payload["tracker_id"],
         direction=payload["direction"],
+        object_class=payload.get("object_class", "person"),
         bbox=payload.get("bbox"),
     )
     # live_state ni shu jarayonda yangilaymiz
@@ -78,6 +79,10 @@ async def push_event(payload: dict):
         else:
             live_state.out_count += 1
         live_state.total_count = live_state.in_count + live_state.out_count
+        object_class = payload.get("object_class", "person")
+        live_state.category_counts[object_class] = (
+            live_state.category_counts.get(object_class, 0) + 1
+        )
     await manager.broadcast(payload)
     return {"status": "ok"}
 
@@ -90,6 +95,7 @@ async def update_stats(payload: dict):
         out_count=live_state.out_count,
         active_tracks=payload.get("active_tracks", 0),
         fps=payload.get("fps", 0.0),
+        category_counts=live_state.category_counts,
     )
     return {"status": "ok"}
 

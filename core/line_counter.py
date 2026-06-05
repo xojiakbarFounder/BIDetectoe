@@ -35,6 +35,7 @@ from config import settings
 class CrossingEvent:
     tracker_id: int
     direction: str          # "in" | "out"  (positive→"in", negative→"out")
+    object_class: str = "person"
     timestamp: float = field(default_factory=time.time)
     bbox: tuple[float, float, float, float] | None = None   # x1 y1 x2 y2
 
@@ -123,6 +124,7 @@ class LineCounter:
                 event = CrossingEvent(
                     tracker_id=tid,
                     direction=direction,
+                    object_class=self._class_name(detections, i),
                     bbox=(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
                 )
                 events.append(event)
@@ -189,3 +191,10 @@ class LineCounter:
         bx, by = self.pt2
         cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax)
         return 1 if cross >= 0 else -1
+
+    @staticmethod
+    def _class_name(detections: sv.Detections, index: int) -> str:
+        names = {0: "person", 2: "car", 3: "motorcycle"}
+        if detections.class_id is None:
+            return "person"
+        return names.get(int(detections.class_id[index]), "object")
